@@ -6,7 +6,7 @@ Pod::Spec.new do |s|
   s.authors      = { 'John McIntosh' => 'john.mcintosh@mutualmobile.com' }
   s.license      = "MIT"
 
-  s.ios.deployment_target = '7.0'
+  s.ios.deployment_target = '11.0'
   s.source       = { :git => "https://github.com/MutualMobile/MMBarricade.git", :tag => s.version.to_s }
   s.frameworks = 'Foundation', 'CFNetwork'
   s.requires_arc = true
