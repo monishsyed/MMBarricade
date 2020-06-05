@@ -146,7 +146,7 @@ static NSString * const kTableCellIdentifier = @"BasicCellIdentifier";
     _searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
     _searchController.searchResultsUpdater = self;
     _searchController.obscuresBackgroundDuringPresentation = false;
-    _searchController.searchBar.placeholder = @"Search Candies";
+    _searchController.searchBar.placeholder = @"Search response set";
     if (@available(iOS 11.0, *)) {
         self.navigationItem.searchController = _searchController;
     } else {
