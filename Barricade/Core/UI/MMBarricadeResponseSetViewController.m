@@ -29,10 +29,12 @@
 static NSString * const kTableCellIdentifier = @"BasicCellIdentifier";
 
 
-@interface MMBarricadeResponseSetViewController () <UITableViewDataSource, UITableViewDelegate>
+@interface MMBarricadeResponseSetViewController () <UITableViewDataSource, UITableViewDelegate, UISearchResultsUpdating>
 
 @property (nonatomic, strong) UITableView *tableView;
+@property (nonatomic, strong) UISearchController *searchController;
 @property (nonatomic, strong) id<MMBarricadeResponseStore> responseStore;
+@property (nonatomic, copy) NSArray *filteredResponseSet;
 
 @end
 
@@ -42,7 +44,8 @@ static NSString * const kTableCellIdentifier = @"BasicCellIdentifier";
 - (instancetype)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil {
     self = [super initWithNibName:nibNameOrNil bundle:nibBundleOrNil];
     if (self) {
-        _tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
+        [self instantiateSubviews];
+        self.definesPresentationContext = true;
     }
     return self;
 }
@@ -90,6 +93,10 @@ static NSString * const kTableCellIdentifier = @"BasicCellIdentifier";
 }
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
+    if (self.isFiltering) {
+        return self.filteredResponseSet.count;
+    }
+    
     return self.responseStore.allResponseSets.count;
 }
 
@@ -100,7 +107,12 @@ static NSString * const kTableCellIdentifier = @"BasicCellIdentifier";
         cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
     }
     
-    MMBarricadeResponseSet *responseSet = self.responseStore.allResponseSets[indexPath.row];
+    MMBarricadeResponseSet *responseSet;
+    if (self.isFiltering) {
+        responseSet = self.filteredResponseSet[indexPath.row];
+    } else {
+        responseSet = self.responseStore.allResponseSets[indexPath.row];
+    }
     cell.textLabel.text = responseSet.requestName;
     
     id<MMBarricadeResponse> selectedResponse = [self.responseStore currentResponseForResponseSet:responseSet];
@@ -110,9 +122,56 @@ static NSString * const kTableCellIdentifier = @"BasicCellIdentifier";
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    MMBarricadeResponseSet *responseSet = self.responseStore.allResponseSets[indexPath.row];
+    MMBarricadeResponseSet *responseSet;
+    if (self.isFiltering) {
+        responseSet = self.filteredResponseSet[indexPath.row];
+    } else {
+        responseSet = self.responseStore.allResponseSets[indexPath.row];
+    }
+    
     MMBarricadeResponseSelectionViewController *viewController = [[MMBarricadeResponseSelectionViewController alloc] initWithResponseSet:responseSet];
     [self.navigationController pushViewController:viewController animated:YES];
+}
+
+#pragma mark - UISearchController
+
+- (void)updateSearchResultsForSearchController:(UISearchController *)searchController {
+    [self filterContentForSearchText:searchController.searchBar.text];
+}
+
+#pragma mark - Private
+
+- (void)instantiateSubviews {
+    _tableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStylePlain];
+    _searchController = [[UISearchController alloc] initWithSearchResultsController:nil];
+    _searchController.searchResultsUpdater = self;
+    _searchController.obscuresBackgroundDuringPresentation = false;
+    _searchController.searchBar.placeholder = @"Search Candies";
+    if (@available(iOS 11.0, *)) {
+        self.navigationItem.searchController = _searchController;
+    } else {
+        // Fallback on earlier versions
+    }
+}
+
+- (BOOL)isSearchBarEmpty {
+    NSString *searchText = self.searchController.searchBar.text;
+    if (searchText) {
+        return searchText.length == 0;
+    } else {
+        return YES;
+    }
+}
+
+- (void)filterContentForSearchText:(NSString *)searchText {
+    NSPredicate *pred =[NSPredicate predicateWithFormat: @"requestName CONTAINS[cd] %@", searchText];
+    self.filteredResponseSet = [self.responseStore.allResponseSets filteredArrayUsingPredicate:pred];
+    
+    [self.tableView reloadData];
+}
+
+- (BOOL)isFiltering {
+    return self.searchController.isActive && !self.isSearchBarEmpty;
 }
 
 @end
